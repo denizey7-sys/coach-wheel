@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Колесо компетенций agile-коуча</title>
+
+  <!-- React + Babel из CDN: JSX работает прямо в браузере, без сборки -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #0E1626; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useRef, useEffect, useCallback } = React;
+
+    // ══════════════════════════════════════════════════════════════════
+    //  НАСТРОЙКА GOOGLE DRIVE
+    //  Client ID уже подставлен под аккаунт denizey7-sys.
+    //  Если будешь пересоздавать OAuth — замени строку ниже.
+    // ══════════════════════════════════════════════════════════════════
+    const GOOGLE_CLIENT_ID = "54196403634-nfkf2b90esd6jet6t1or183rr6drel01.apps.googleusercontent.com";
+    const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+    const DRIVE_FILENAME = "coach-wheel-data.json";
+
+    // ─── Модель компетенций ──────────────────────────────────────────
+    const DOMAINS = [
+      { key: "teaching", label: "Обучение", full: "Teaching",
+        desc: "Передача знаний по Agile, Scrum, Kanban, OKR. Дизайн обучающих сессий под уровень аудитории.",
+        growth: "1: пересказываю материалы. 3: адаптирую под контекст команды и разбираю их кейсы. 5: строю программы обучения, готовлю других тренеров." },
+      { key: "mentoring", label: "Наставничество", full: "Mentoring",
+        desc: "Развитие человека в конкретной роли через передачу личного опыта и разбор его ситуаций.",
+        growth: "1: даю советы из своей практики. 3: подбираю пример под задачу подопечного, а не рассказываю про себя. 5: развиваю менторов, вижу траекторию роли на годы." },
+      { key: "facilitating", label: "Фасилитация", full: "Facilitating",
+        desc: "Нейтральное ведение групп к решению. Дизайн воркшопов, работа с конфликтом и молчунами.",
+        growth: "1: веду по готовому сценарию. 3: перестраиваю процесс на ходу, держу нейтралитет под напряжением. 5: проектирую сложные мультикомандные сессии (PI planning и т.п.)." },
+      { key: "coaching", label: "Проф. коучинг", full: "Professional Coaching",
+        desc: "Коуч-позиция без экспертной шапки: сильные вопросы, работа с целями клиента, а не своими.",
+        growth: "1: путаю коучинг с советами. 3: удерживаю позицию, задаю вопросы, от которых клиент думает сам. 5: коучу на уровне организации, супервизирую коучей." },
+      { key: "agileLean", label: "Agile / Lean", full: "Agile-Lean практики",
+        desc: "Глубина методологий: Scrum, Kanban, SAFe, OKR, потоковые метрики, LPM.",
+        growth: "1: знаю фреймворки по книге. 3: осознанно выбираю практику под контекст, вижу анти-паттерны. 5: комбинирую подходы, формирую метод под организацию." },
+      { key: "technical", label: "Тех. мастерство", full: "Technical Mastery",
+        desc: "Понимание инженерных практик (CI/CD, XP, DevOps, тест-стратегии) для диалога с командами на равных.",
+        growth: "1: термины знаю, глубины нет. 3: предметно обсуждаю тех-долг и практики с инженерами. 5: помогаю выстраивать инженерную культуру и архитектурные ритмы." },
+      { key: "business", label: "Бизнес / Трансформация", full: "Business & Transformation",
+        desc: "Оргдизайн, модели изменений (ADKAR, Kotter), работа с C-level, управление портфелем.",
+        growth: "1: работаю на уровне команды. 3: связываю работу команд со стратегией, веду изменения по фазам. 5: проектирую трансформацию организации, партнёрю с C-level." },
+      { key: "self", label: "Работа с собой", full: "Self-Mastery",
+        desc: "Саморефлексия, управление своими реакциями и статус-угрозой, присутствие, этика роли.",
+        growth: "1: реагирую автоматически. 3: замечаю свои триггеры в моменте и выбираю ответ. 5: устойчив под давлением, служу зеркалом для системы, держу этические границы." },
+    ];
+
+    const LEVELS = {
+      1: { name: "Beginner", desc: "Знаю теорию, применяю по шаблону под присмотром." },
+      2: { name: "Practitioner", desc: "Работаю самостоятельно в типовых ситуациях." },
+      3: { name: "Proficient", desc: "Уверенно действую в сложных, неоднозначных контекстах." },
+      4: { name: "Expert", desc: "Системный взгляд, работа на стыке доменов, у меня учатся." },
+      5: { name: "Leader", desc: "Формирую практику, менторю коучей, влияю на подход." },
+    };
+
+    const C = {
+      bg: "#0E1626", panel: "#16213A", panelSoft: "#1C2A45", line: "#2A3A5C",
+      ink: "#E8EDF7", inkSoft: "#8FA0C0", accent: "#4DD8C0", accentDim: "#3AA88F",
+      manager: "#5B9CF0", prev: "#F2A65A", grid: "#243356", target: "#7C6BF0",
+      ok: "#5FD08A", warn: "#F2A65A", err: "#F0687A",
+    };
+
+    const SIZE = 520, CENTER = SIZE / 2, RADIUS = 190, RINGS = 5;
+
+    function polar(cx, cy, r, angleDeg) {
+      const a = ((angleDeg - 90) * Math.PI) / 180;
+      return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    }
+    function wheelPath(scores) {
+      const pts = DOMAINS.map((d, i) => {
+        const val = scores[d.key] || 0;
+        const r = (val / RINGS) * RADIUS;
+        return polar(CENTER, CENTER, r, (360 / DOMAINS.length) * i);
+      });
+      if (pts.every((p) => p[0] === CENTER && p[1] === CENTER)) return "";
+      return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") + " Z";
+    }
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const emptyScores = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 3]));
+    const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, { action: "", due: "" }]));
+
+    // Нормализация снапшотов (миграция старых форматов)
+    function normalizeSnapshots(arr) {
+      return arr.map((s) => ({
+        date: s.date || todayISO(),
+        selfScores: s.selfScores || s.scores || emptyScores(),
+        managerScores: s.managerScores || emptyScores(),
+        note: s.note || "",
+        plan: s.plan || emptyPlan(),
+      }));
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  DRIVE-СЛОЙ: авторизация + чтение/запись в appDataFolder
+    // ══════════════════════════════════════════════════════════════════
+    function useGoogleDrive() {
+      const [token, setToken] = useState(null);       // access token
+      const [status, setStatus] = useState("idle");   // idle|connecting|connected|error
+      const [error, setError] = useState("");
+      const tokenClientRef = useRef(null);
+      const fileIdRef = useRef(null);
+
+      // Инициализация token client, когда GIS-скрипт загрузился
+      const initClient = useCallback(() => {
+        if (!window.google?.accounts?.oauth2) return false;
+        tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: DRIVE_SCOPE,
+          callback: (resp) => {
+            if (resp.error) {
+              setError("Не удалось авторизоваться: " + resp.error);
+              setStatus("error");
+              return;
+            }
+            setToken(resp.access_token);
+            setStatus("connected");
+            setError("");
+          },
+        });
+        return true;
+      }, []);
+
+      const connect = useCallback(() => {
+        setError("");
+        setStatus("connecting");
+        if (!tokenClientRef.current && !initClient()) {
+          setError("Google-скрипт ещё не загрузился. Обнови страницу и попробуй снова.");
+          setStatus("error");
+          return;
+        }
+        // prompt: '' — переиспользует согласие, если оно уже дано
+        tokenClientRef.current.requestAccessToken({ prompt: token ? "" : "consent" });
+      }, [initClient, token]);
+
+      const disconnect = useCallback(() => {
+        if (token && window.google?.accounts?.oauth2) {
+          window.google.accounts.oauth2.revoke(token, () => {});
+        }
+        setToken(null);
+        setStatus("idle");
+        fileIdRef.current = null;
+      }, [token]);
+
+      // Найти fileId нашего файла в appDataFolder
+      const findFileId = useCallback(async () => {
+        const q = encodeURIComponent(`name='${DRIVE_FILENAME}'`);
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+          { headers: { Authorization: "Bearer " + token } }
+        );
+        if (!res.ok) throw new Error("Drive list failed: " + res.status);
+        const data = await res.json();
+        const f = data.files?.[0];
+        fileIdRef.current = f?.id || null;
+        return fileIdRef.current;
+      }, [token]);
+
+      // Загрузить данные (или null, если файла ещё нет)
+      const load = useCallback(async () => {
+        const id = fileIdRef.current || (await findFileId());
+        if (!id) return null;
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+          { headers: { Authorization: "Bearer " + token } }
+        );
+        if (!res.ok) throw new Error("Drive download failed: " + res.status);
+        return await res.json();
+      }, [token, findFileId]);
+
+      // Сохранить данные (создаёт файл при первом сохранении)
+      const save = useCallback(async (payload) => {
+        const body = JSON.stringify(payload);
+        const id = fileIdRef.current || (await findFileId());
+        if (!id) {
+          // multipart-создание с metadata + контентом
+          const boundary = "wheelBoundary" + Date.now();
+          const metadata = { name: DRIVE_FILENAME, parents: ["appDataFolder"] };
+          const multipart =
+            `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+            JSON.stringify(metadata) +
+            `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
+            body +
+            `\r\n--${boundary}--`;
+          const res = await fetch(
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+            {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": `multipart/related; boundary=${boundary}`,
+              },
+              body: multipart,
+            }
+          );
+          if (!res.ok) throw new Error("Drive create failed: " + res.status);
+          const data = await res.json();
+          fileIdRef.current = data.id;
+        } else {
+          // обновление содержимого существующего файла
+          const res = await fetch(
+            `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json",
+              },
+              body,
+            }
+          );
+          if (!res.ok) throw new Error("Drive update failed: " + res.status);
+        }
+      }, [token, findFileId]);
+
+      return { token, status, error, connect, disconnect, load, save, setError, setStatus };
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  ГЛАВНЫЙ КОМПОНЕНТ
+    // ══════════════════════════════════════════════════════════════════
+    function App() {
+      const [snapshots, setSnapshots] = useState([
+        { date: todayISO(), selfScores: emptyScores(), managerScores: emptyScores(), note: "", plan: emptyPlan() },
+      ]);
+      const [activeIdx, setActiveIdx] = useState(0);
+      const [role, setRole] = useState("self");
+      const [showGap, setShowGap] = useState(false);
+      const [openDomain, setOpenDomain] = useState(null);
+      const [compareIdx, setCompareIdx] = useState(null);
+      const [showTarget, setShowTarget] = useState(true);
+      const [targets, setTargets] = useState(Object.fromEntries(DOMAINS.map((d) => [d.key, 4])));
+      const [driveMsg, setDriveMsg] = useState("");
+      const [busy, setBusy] = useState(false);
+      const fileRef = useRef(null);
+
+      const drive = useGoogleDrive();
+
+      const active = snapshots[activeIdx];
+      const compare = compareIdx != null ? snapshots[compareIdx] : null;
+      const activeScores = role === "self" ? active.selfScores : active.managerScores;
+
+      const setScore = (key, val) => {
+        const field = role === "self" ? "selfScores" : "managerScores";
+        setSnapshots((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, [field]: { ...s[field], [key]: val } } : s)));
+      };
+      const setNote = (note) => setSnapshots((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, note } : s)));
+      const setPlan = (key, field, value) => {
+        setSnapshots((prev) => prev.map((s, i) =>
+          i === activeIdx ? { ...s, plan: { ...s.plan, [key]: { ...(s.plan?.[key] || { action: "", due: "" }), [field]: value } } } : s));
+      };
+      const addSnapshot = () => {
+        const next = { date: todayISO(), selfScores: { ...active.selfScores }, managerScores: { ...active.managerScores }, note: "", plan: emptyPlan() };
+        setSnapshots((prev) => [...prev, next]);
+        setActiveIdx(snapshots.length);
+        setCompareIdx(activeIdx);
+      };
+      const removeSnapshot = (idx) => {
+        if (snapshots.length === 1) return;
+        setSnapshots((prev) => prev.filter((_, i) => i !== idx));
+        setActiveIdx(0);
+        setCompareIdx(null);
+      };
+
+      const exportJSON = () => {
+        const data = { wheelVersion: "v1-8domains", targets, snapshots };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `ipr-coach-${todayISO()}.json`; a.click();
+        URL.revokeObjectURL(url);
+      };
+      const importJSON = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data.snapshots) && data.snapshots.length) {
+              setSnapshots(normalizeSnapshots(data.snapshots));
+              if (data.targets) setTargets(data.targets);
+              setActiveIdx(0); setCompareIdx(null);
+            }
+          } catch { alert("Не удалось прочитать файл."); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      };
+
+      // ─── Drive: сохранить ───
+      const saveToDrive = async () => {
+        if (!drive.token) { drive.connect(); return; }
+        setBusy(true); setDriveMsg("Сохраняю…");
+        try {
+          await drive.save({ wheelVersion: "v1-8domains", targets, snapshots, savedAt: new Date().toISOString() });
+          setDriveMsg("Сохранено в Drive ✓");
+        } catch (e) {
+          setDriveMsg("Ошибка сохранения: " + e.message);
+        } finally { setBusy(false); }
+      };
+      // ─── Drive: загрузить ───
+      const loadFromDrive = async () => {
+        if (!drive.token) { drive.connect(); return; }
+        setBusy(true); setDriveMsg("Загружаю…");
+        try {
+          const data = await drive.load();
+          if (!data) { setDriveMsg("В Drive пока нет сохранённого файла."); }
+          else if (Array.isArray(data.snapshots) && data.snapshots.length) {
+            setSnapshots(normalizeSnapshots(data.snapshots));
+            if (data.targets) setTargets(data.targets);
+            setActiveIdx(0); setCompareIdx(null);
+            setDriveMsg("Загружено из Drive ✓");
+          } else { setDriveMsg("Файл найден, но пуст."); }
+        } catch (e) {
+          setDriveMsg("Ошибка загрузки: " + e.message);
+        } finally { setBusy(false); }
+      };
+
+      // Автозагрузка при первом подключении
+      useEffect(() => {
+        if (drive.status === "connected" && drive.token) {
+          loadFromDrive();
+        }
+        // eslint-disable-next-line
+      }, [drive.status]);
+
+      const avg = useMemo(() => {
+        const vals = DOMAINS.map((d) => activeScores[d.key] || 0);
+        return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+      }, [activeScores]);
+      const avgGap = useMemo(() => {
+        const diffs = DOMAINS.map((d) => Math.abs((active.selfScores[d.key] || 0) - (active.managerScores[d.key] || 0)));
+        return (diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1);
+      }, [active]);
+
+      const connected = drive.status === "connected";
+
+      return (
+        <div style={{ minHeight: "100vh", background: C.bg, color: C.ink, fontFamily: "'Inter', system-ui, sans-serif", padding: "clamp(16px,3vw,40px)" }}>
+          <style>{`
+            * { box-sizing: border-box; }
+            .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+            input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px; background: ${C.line}; outline: none; }
+            input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${C.accent}; cursor: pointer; border: 2px solid ${C.bg}; }
+            input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: ${C.accent}; cursor: pointer; border: 2px solid ${C.bg}; }
+            .chip { cursor: pointer; transition: all .15s; }
+            .chip:hover { border-color: ${C.accent} !important; }
+            button:focus-visible, .chip:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
+          `}</style>
+
+          <header style={{ maxWidth: 1100, margin: "0 auto 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div className="mono" style={{ color: C.accent, fontSize: 12, letterSpacing: 2, textTransform: "uppercase" }}>Индивидуальный план развития</div>
+              <h1 style={{ margin: "6px 0 0", fontSize: "clamp(24px,4vw,38px)", fontWeight: 700, lineHeight: 1.1 }}>
+                Колесо компетенций <span style={{ color: C.inkSoft, fontWeight: 400 }}>agile-коуча</span>
+              </h1>
+            </div>
+            {/* ─── Панель Drive ─── */}
+            <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, padding: "10px 14px", minWidth: 240 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? C.ok : drive.status === "error" ? C.err : C.inkSoft }} />
+                <span className="mono" style={{ fontSize: 12, color: C.inkSoft }}>
+                  {connected ? "Google Drive подключён" : drive.status === "error" ? "Ошибка подключения" : "Drive не подключён"}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {!connected ? (
+                  <Btn onClick={drive.connect} primary>Подключить Drive</Btn>
+                ) : (
+                  <>
+                    <Btn onClick={saveToDrive} primary>{busy ? "…" : "Сохранить"}</Btn>
+                    <Btn onClick={loadFromDrive}>Загрузить</Btn>
+                    <Btn onClick={drive.disconnect}>Выйти</Btn>
+                  </>
+                )}
+              </div>
+              {(driveMsg || drive.error) && (
+                <div style={{ fontSize: 11, color: drive.error ? C.err : C.inkSoft, marginTop: 8, maxWidth: 240 }}>
+                  {drive.error || driveMsg}
+                </div>
+              )}
+            </div>
+          </header>
+
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 28 }}>
+            {/* ─── Колесо ─── */}
+            <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <div className="mono" style={{ fontSize: 12, color: C.inkSoft, letterSpacing: 1 }}>ЗРЕЛОСТЬ</div>
+                <div><span className="mono" style={{ fontSize: 28, fontWeight: 700, color: role === "self" ? C.accent : C.manager }}>{avg}</span><span className="mono" style={{ color: C.inkSoft, fontSize: 14 }}> / 5.0</span></div>
+              </div>
+              <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width="100%" role="img" aria-label="Колесо компетенций">
+                {Array.from({ length: RINGS }).map((_, i) => (
+                  <circle key={i} cx={CENTER} cy={CENTER} r={((i + 1) / RINGS) * RADIUS} fill="none" stroke={C.grid} strokeWidth={1} />
+                ))}
+                {DOMAINS.map((d, i) => {
+                  const [x, y] = polar(CENTER, CENTER, RADIUS, (360 / DOMAINS.length) * i);
+                  const [lx, ly] = polar(CENTER, CENTER, RADIUS + 26, (360 / DOMAINS.length) * i);
+                  const anchor = Math.abs(lx - CENTER) < 30 ? "middle" : lx > CENTER ? "start" : "end";
+                  return (
+                    <g key={d.key}>
+                      <line x1={CENTER} y1={CENTER} x2={x} y2={y} stroke={C.grid} strokeWidth={1} />
+                      <text x={lx} y={ly} fill={C.inkSoft} fontSize={11} textAnchor={anchor} dominantBaseline="middle">{d.label}</text>
+                    </g>
+                  );
+                })}
+                {showTarget && <path d={wheelPath(targets)} fill="none" stroke={C.target} strokeWidth={1.5} strokeDasharray="4 4" opacity={0.9} />}
+                {compare && <path d={wheelPath(compare.selfScores)} fill={C.prev} fillOpacity={0.1} stroke={C.prev} strokeWidth={2} strokeDasharray="6 3" />}
+                {showGap && (
+                  <>
+                    <path d={wheelPath(active.managerScores)} fill={C.manager} fillOpacity={0.14} stroke={C.manager} strokeWidth={2.5} />
+                    {DOMAINS.map((d, i) => {
+                      const [x, y] = polar(CENTER, CENTER, ((active.managerScores[d.key] || 0) / RINGS) * RADIUS, (360 / DOMAINS.length) * i);
+                      return <circle key={d.key} cx={x} cy={y} r={3.5} fill={C.manager} stroke={C.bg} strokeWidth={1.5} />;
+                    })}
+                  </>
+                )}
+                <path d={wheelPath(active.selfScores)} fill={C.accent} fillOpacity={0.18} stroke={C.accent} strokeWidth={2.5} />
+                {DOMAINS.map((d, i) => {
+                  const [x, y] = polar(CENTER, CENTER, ((active.selfScores[d.key] || 0) / RINGS) * RADIUS, (360 / DOMAINS.length) * i);
+                  return <circle key={d.key} cx={x} cy={y} r={3.5} fill={C.accent} stroke={C.bg} strokeWidth={1.5} />;
+                })}
+              </svg>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, color: C.inkSoft, marginTop: 4 }}>
+                <Legend color={C.accent} label="Самооценка" />
+                {showGap && <Legend color={C.manager} label={`Руководитель · расх. ${avgGap}`} />}
+                {compare && <Legend color={C.prev} label={`Прошлый срез · ${compare.date}`} dashed />}
+                {showTarget && <Legend color={C.target} label="Цель" dashed />}
+              </div>
+            </section>
+
+            {/* ─── Оценка ─── */}
+            <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                <div style={{ display: "inline-flex", background: C.bg, border: `1px solid ${C.line}`, borderRadius: 9, padding: 2 }}>
+                  <RoleTab active={role === "self"} color={C.accent} onClick={() => setRole("self")}>Самооценка</RoleTab>
+                  <RoleTab active={role === "manager"} color={C.manager} onClick={() => setRole("manager")}>Руководитель</RoleTab>
+                </div>
+                <button onClick={() => setShowGap((v) => !v)}
+                  style={{ background: showGap ? C.manager : "transparent", color: showGap ? C.bg : C.inkSoft, border: `1px solid ${showGap ? C.manager : C.line}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: showGap ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+                  {showGap ? "Расхождение: вкл" : "Показать расхождение"}
+                </button>
+              </div>
+              {DOMAINS.map((d) => {
+                const val = activeScores[d.key];
+                const selfV = active.selfScores[d.key];
+                const mgrV = active.managerScores[d.key];
+                const gap = mgrV - selfV;
+                const prevScores = compare ? (role === "self" ? compare.selfScores : compare.managerScores) : null;
+                const delta = prevScores ? val - prevScores[d.key] : null;
+                const isOpen = openDomain === d.key;
+                return (
+                  <div key={d.key} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                      <button onClick={() => setOpenDomain(isOpen ? null : d.key)} aria-expanded={isOpen}
+                        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, cursor: "pointer", color: isOpen ? C.accent : C.ink, fontSize: 13, fontFamily: "inherit" }}>
+                        <span style={{ fontSize: 10, color: C.inkSoft, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▶</span>
+                        <span style={{ borderBottom: `1px dotted ${C.inkSoft}` }}>{d.label}</span>
+                        {active.plan?.[d.key]?.action?.trim() && <span title="Есть запись в плане" style={{ width: 6, height: 6, borderRadius: "50%", background: C.target, display: "inline-block" }} />}
+                      </button>
+                      <span style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                        {showGap && gap !== 0 && (
+                          <span className="mono" style={{ fontSize: 11, color: C.manager, border: `1px solid ${C.manager}`, borderRadius: 5, padding: "0 4px" }} title="Расхождение: руководитель − самооценка">
+                            {gap > 0 ? "+" : ""}{gap}
+                          </span>
+                        )}
+                        {delta != null && delta !== 0 && (
+                          <span className="mono" style={{ fontSize: 11, color: delta > 0 ? C.accent : C.prev }}>{delta > 0 ? "▲" : "▼"}{Math.abs(delta)}</span>
+                        )}
+                        <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: role === "self" ? C.accent : C.manager }}>{val}</span>
+                      </span>
+                    </div>
+                    {isOpen && (
+                      <div style={{ background: C.panelSoft, border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 12, lineHeight: 1.5 }}>
+                        <div style={{ color: C.ink }}>{d.desc}</div>
+                        <div style={{ color: C.inkSoft, marginTop: 6 }}>{d.growth}</div>
+                        <div style={{ borderTop: `1px solid ${C.line}`, margin: "10px 0", paddingTop: 10 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
+                            <span className="mono" style={{ fontSize: 11, color: C.accent, letterSpacing: 0.5 }}>МОЙ СЛЕДУЮЩИЙ ШАГ</span>
+                            {targets[d.key] > selfV && <span className="mono" style={{ fontSize: 11, color: C.target }}>цель {targets[d.key]} · +{targets[d.key] - selfV}</span>}
+                          </div>
+                          <textarea value={active.plan?.[d.key]?.action || ""} onChange={(e) => setPlan(d.key, "action", e.target.value)}
+                            placeholder={`Что сделаю до следующего среза, чтобы двигаться к уровню ${Math.min(selfV + 1, 5)}…`}
+                            style={{ width: "100%", minHeight: 44, background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 8px", fontSize: 12, fontFamily: "inherit", resize: "vertical", lineHeight: 1.4 }} />
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                            <label style={{ fontSize: 11, color: C.inkSoft }}>Срок:</label>
+                            <input type="month" value={active.plan?.[d.key]?.due || ""} onChange={(e) => setPlan(d.key, "due", e.target.value)}
+                              style={{ background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "4px 8px", fontSize: 12, fontFamily: "inherit", colorScheme: "dark" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <input type="range" min={1} max={5} step={1} value={val} onChange={(e) => setScore(d.key, +e.target.value)} style={{ width: "100%" }} aria-label={`${d.label}: уровень ${val}`} />
+                  </div>
+                );
+              })}
+              <textarea value={active.note} onChange={(e) => setNote(e.target.value)}
+                placeholder="Заметка ко всему срезу — контекст фазы, общий вывод для 1-1. Конкретные шаги пиши в «Мой следующий шаг» внутри домена."
+                style={{ width: "100%", marginTop: 8, minHeight: 60, background: C.panelSoft, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 10, padding: 10, fontSize: 13, fontFamily: "inherit", resize: "vertical" }} />
+            </section>
+          </div>
+
+          {/* ─── Срезы ─── */}
+          <section style={{ maxWidth: 1100, margin: "24px auto 0", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
+              <div className="mono" style={{ fontSize: 12, color: C.inkSoft, letterSpacing: 1 }}>СРЕЗЫ ВО ВРЕМЕНИ</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn onClick={addSnapshot} primary>+ Новый срез</Btn>
+                <Btn onClick={() => setShowTarget((v) => !v)}>{showTarget ? "Скрыть цель" : "Показать цель"}</Btn>
+                <Btn onClick={exportJSON}>Экспорт JSON</Btn>
+                <Btn onClick={() => fileRef.current?.click()}>Импорт JSON</Btn>
+                <input ref={fileRef} type="file" accept="application/json" onChange={importJSON} style={{ display: "none" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {snapshots.map((s, i) => {
+                const isActive = i === activeIdx;
+                const isCompare = i === compareIdx;
+                return (
+                  <div key={i} className="chip" tabIndex={0} onClick={() => setActiveIdx(i)}
+                    style={{ position: "relative", background: isActive ? C.panelSoft : "transparent", border: `1px solid ${isActive ? C.accent : C.line}`, borderRadius: 10, padding: "8px 12px", minWidth: 120 }}>
+                    <div className="mono" style={{ fontSize: 13, color: isActive ? C.accent : C.ink }}>{s.date}</div>
+                    <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 2, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.note || "без заметки"}</div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                      <button onClick={(e) => { e.stopPropagation(); setCompareIdx(isCompare ? null : i); }}
+                        style={{ fontSize: 10, background: "none", border: `1px solid ${isCompare ? C.prev : C.line}`, color: isCompare ? C.prev : C.inkSoft, borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}>
+                        {isCompare ? "сравн. ✓" : "сравнить"}
+                      </button>
+                      {snapshots.length > 1 && (
+                        <button onClick={(e) => { e.stopPropagation(); removeSnapshot(i); }}
+                          style={{ fontSize: 10, background: "none", border: `1px solid ${C.line}`, color: C.inkSoft, borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}>✕</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: C.inkSoft, marginTop: 14, lineHeight: 1.5 }}>
+              {connected
+                ? "Drive подключён. Жми «Сохранить» после изменений — данные пишутся в скрытую папку приложения на твоём Google Drive."
+                : "Подключи Google Drive вверху справа, чтобы срезы сохранялись автоматически. Пока не подключён — данные живут только в этой вкладке (используй Экспорт JSON)."}
+            </p>
+          </section>
+
+          {/* ─── Справка по уровням ─── */}
+          <section style={{ maxWidth: 1100, margin: "24px auto 0", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+            {Object.entries(LEVELS).map(([lvl, info]) => (
+              <div key={lvl} style={{ background: C.panelSoft, border: `1px solid ${C.line}`, borderRadius: 10, padding: 12 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span className="mono" style={{ fontSize: 18, fontWeight: 700, color: C.accent }}>{lvl}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{info.name}</span>
+                </div>
+                <p style={{ fontSize: 12, color: C.inkSoft, margin: "6px 0 0", lineHeight: 1.4 }}>{info.desc}</p>
+              </div>
+            ))}
+          </section>
+        </div>
+      );
+    }
+
+    function RoleTab({ children, active, color, onClick }) {
+      return (
+        <button onClick={onClick}
+          style={{ background: active ? color : "transparent", color: active ? C.bg : C.inkSoft, border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+          {children}
+        </button>
+      );
+    }
+    function Legend({ color, label, dashed }) {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 14, height: 0, borderTop: `2px ${dashed ? "dashed" : "solid"} ${color}` }} />
+          {label}
+        </span>
+      );
+    }
+    function Btn({ children, onClick, primary }) {
+      return (
+        <button onClick={onClick}
+          style={{ background: primary ? C.accent : "transparent", color: primary ? C.bg : C.ink, border: `1px solid ${primary ? C.accent : C.line}`, borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: primary ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+          {children}
+        </button>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

@@ -5,23 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Колесо компетенций agile-коуча</title>
 
-  <!-- React + Babel из CDN: JSX работает прямо в браузере, без сборки -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <style>
     html, body { margin: 0; padding: 0; background: #0E1626; }
     #root { min-height: 100vh; }
+    #boot { color: #8FA0C0; font-family: system-ui, sans-serif; padding: 40px; font-size: 14px; line-height: 1.6; }
+    #boot b { color: #E8EDF7; }
+    #boot .err { color: #F0687A; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div id="boot">Загружаю приложение…</div></div>
 
-  <script type="text/babel" data-presets="react">
+  <!--
+    Скрипты грузятся с двух CDN по очереди: сначала jsdelivr, при неудаче — unpkg.
+    Если оба недоступны, на экране появится понятное сообщение вместо пустоты.
+  -->
+  <script>
+    window.__bootErrors = [];
+    function bootMsg(html) {
+      var b = document.getElementById('boot');
+      if (b) b.innerHTML = html;
+    }
+    function loadScript(urls, name, cb) {
+      var i = 0;
+      function attempt() {
+        if (i >= urls.length) {
+          window.__bootErrors.push(name);
+          bootMsg('<b class="err">Не удалось загрузить ' + name + '.</b><br><br>' +
+            'Похоже, доступ к CDN (jsdelivr.net и unpkg.com) заблокирован в этой сети.<br>' +
+            'Попробуй: другую сеть/мобильный интернет, отключить блокировщик рекламы, или VPN.<br><br>' +
+            'Технически: ни один из источников скрипта не ответил.');
+          return;
+        }
+        var s = document.createElement('script');
+        s.src = urls[i];
+        s.crossOrigin = 'anonymous';
+        s.onload = function () { cb(); };
+        s.onerror = function () { i++; attempt(); };
+        document.head.appendChild(s);
+      }
+      attempt();
+    }
+    loadScript(
+      ['https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+       'https://unpkg.com/react@18/umd/react.production.min.js'],
+      'React',
+      function () {
+        loadScript(
+          ['https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
+           'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'],
+          'ReactDOM',
+          function () {
+            loadScript(
+              ['https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js',
+               'https://unpkg.com/@babel/standalone/babel.min.js'],
+              'Babel',
+              function () {
+                var g = document.createElement('script');
+                g.src = 'https://accounts.google.com/gsi/client';
+                g.async = true; g.defer = true;
+                document.head.appendChild(g);
+                startApp();
+              }
+            );
+          }
+        );
+      }
+    );
+    function startApp() {
+      try {
+        var src = document.getElementById('app-source').textContent;
+        var out = Babel.transform(src, { presets: ['react'] }).code;
+        (new Function(out))();
+      } catch (e) {
+        bootMsg('<b class="err">Ошибка запуска приложения:</b><br><br>' + (e && e.message ? e.message : e));
+      }
+    }
+  </script>
+
+  <!-- Исходник приложения (JSX). Транспилируется в браузере после загрузки Babel. -->
+  <script type="text/plain" id="app-source">
     const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
     // ══════════════════════════════════════════════════════════════════

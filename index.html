@@ -173,6 +173,7 @@ function wheelPath(scores) {
 }
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const emptyScores = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 3]));
+const defaultTargets = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 4]));
 const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, { inIdp: false, a70: "", a20: "", a10: "", due: "" }]));
 const emptyPlanItem = () => ({ inIdp: false, a70: "", a20: "", a10: "", due: "" });
 // Миграция старого поля action -> a70
@@ -186,12 +187,13 @@ const migratePlanItem = (p) => {
 };
 const migratePlan = (plan) => Object.fromEntries(DOMAINS.map((d) => [d.key, migratePlanItem(plan === null || plan === void 0 ? void 0 : plan[d.key])]));
 // Нормализация снапшотов (миграция старых форматов)
-function normalizeSnapshots(arr) {
+function normalizeSnapshots(arr, legacyTargets) {
     return arr.map((s) => ({
         date: s.date || todayISO(),
         selfScores: s.selfScores || s.scores || emptyScores(),
         managerScores: s.managerScores || emptyScores(),
         note: s.note || "",
+        targets: s.targets || legacyTargets || defaultTargets(),
         plan: migratePlan(s.plan),
     }));
 }
@@ -314,7 +316,7 @@ function useGoogleDrive() {
 // ══════════════════════════════════════════════════════════════════
 function App() {
     const [snapshots, setSnapshots] = useState([
-        { date: todayISO(), selfScores: emptyScores(), managerScores: emptyScores(), note: "", plan: emptyPlan() },
+        { date: todayISO(), selfScores: emptyScores(), managerScores: emptyScores(), targets: defaultTargets(), note: "", plan: emptyPlan() },
     ]);
     const [activeIdx, setActiveIdx] = useState(0);
     const [role, setRole] = useState("self");
@@ -322,24 +324,34 @@ function App() {
     const [openDomain, setOpenDomain] = useState(null);
     const [compareIdx, setCompareIdx] = useState(null);
     const [showTarget, setShowTarget] = useState(true);
-    const [targets, setTargets] = useState(Object.fromEntries(DOMAINS.map((d) => [d.key, 4])));
     const [driveMsg, setDriveMsg] = useState("");
     const [busy, setBusy] = useState(false);
     const fileRef = useRef(null);
     const drive = useGoogleDrive();
     const active = snapshots[activeIdx];
     const compare = compareIdx != null ? snapshots[compareIdx] : null;
-    const activeScores = role === "self" ? active.selfScores : active.managerScores;
+    // Цель живёт внутри среза: договорились на 1-1 — зафиксировали в этом снимке
+    const targets = active.targets || defaultTargets();
+    const setTargets = (updater) => {
+        setSnapshots((prev) => prev.map((s, i) => i === activeIdx ? { ...s, targets: typeof updater === "function" ? updater(s.targets || defaultTargets()) : updater } : s));
+    };
+    const scoreField = role === "self" ? "selfScores" : role === "manager" ? "managerScores" : "targets";
+    const roleColor = role === "self" ? C.accent : role === "manager" ? C.manager : C.target;
+    const activeScores = role === "target" ? targets : (role === "self" ? active.selfScores : active.managerScores);
     const setScore = (key, val) => {
-        const field = role === "self" ? "selfScores" : "managerScores";
-        setSnapshots((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, [field]: { ...s[field], [key]: val } } : s)));
+        setSnapshots((prev) => prev.map((s, i) => {
+            if (i !== activeIdx)
+                return s;
+            const base = s[scoreField] || (scoreField === "targets" ? defaultTargets() : emptyScores());
+            return { ...s, [scoreField]: { ...base, [key]: val } };
+        }));
     };
     const setNote = (note) => setSnapshots((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, note } : s)));
     const setPlan = (key, field, value) => {
         setSnapshots((prev) => prev.map((s, i) => { var _a; return i === activeIdx ? { ...s, plan: { ...s.plan, [key]: { ...(((_a = s.plan) === null || _a === void 0 ? void 0 : _a[key]) || emptyPlanItem()), [field]: value } } } : s; }));
     };
     const addSnapshot = () => {
-        const next = { date: todayISO(), selfScores: { ...active.selfScores }, managerScores: { ...active.managerScores }, note: "", plan: emptyPlan() };
+        const next = { date: todayISO(), selfScores: { ...active.selfScores }, managerScores: { ...active.managerScores }, targets: { ...targets }, note: "", plan: emptyPlan() };
         setSnapshots((prev) => [...prev, next]);
         setActiveIdx(snapshots.length);
         setCompareIdx(activeIdx);
@@ -370,7 +382,8 @@ function App() {
             return months[+m - 1] + " " + y;
         };
         const body = rows.map((r) => {
-            const target = Math.min(r.lvl + 1, 5);
+            const tv = targets[r.d.key];
+            const target = tv > r.lvl ? tv : Math.min(r.lvl + 1, 5);
             const acts = [];
             if (r.p.a70.trim())
                 acts.push('<div class="act"><span class="tag t70">70%</span>' + esc(r.p.a70) + '</div>');
@@ -432,7 +445,7 @@ function App() {
         w.document.close();
     };
     const exportJSON = () => {
-        const data = { wheelVersion: "v1-8domains", targets, snapshots };
+        const data = { wheelVersion: "v2-targets-in-snapshot", snapshots };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -451,9 +464,7 @@ function App() {
             try {
                 const data = JSON.parse(reader.result);
                 if (Array.isArray(data.snapshots) && data.snapshots.length) {
-                    setSnapshots(normalizeSnapshots(data.snapshots));
-                    if (data.targets)
-                        setTargets(data.targets);
+                    setSnapshots(normalizeSnapshots(data.snapshots, data.targets));
                     setActiveIdx(0);
                     setCompareIdx(null);
                 }
@@ -474,7 +485,7 @@ function App() {
         setBusy(true);
         setDriveMsg("Сохраняю…");
         try {
-            await drive.save({ wheelVersion: "v1-8domains", targets, snapshots, savedAt: new Date().toISOString() });
+            await drive.save({ wheelVersion: "v2-targets-in-snapshot", snapshots, savedAt: new Date().toISOString() });
             setDriveMsg("Сохранено в Drive ✓");
         }
         catch (e) {
@@ -498,9 +509,7 @@ function App() {
                 setDriveMsg("В Drive пока нет сохранённого файла.");
             }
             else if (Array.isArray(data.snapshots) && data.snapshots.length) {
-                setSnapshots(normalizeSnapshots(data.snapshots));
-                if (data.targets)
-                    setTargets(data.targets);
+                setSnapshots(normalizeSnapshots(data.snapshots, data.targets));
                 setActiveIdx(0);
                 setCompareIdx(null);
                 setDriveMsg("Загружено из Drive ✓");
@@ -564,7 +573,7 @@ function App() {
                 React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 } },
                     React.createElement("div", { className: "mono", style: { fontSize: 12, color: C.inkSoft, letterSpacing: 1 } }, "\u0417\u0420\u0415\u041B\u041E\u0421\u0422\u042C"),
                     React.createElement("div", null,
-                        React.createElement("span", { className: "mono", style: { fontSize: 28, fontWeight: 700, color: role === "self" ? C.accent : C.manager } }, avg),
+                        React.createElement("span", { className: "mono", style: { fontSize: 28, fontWeight: 700, color: roleColor } }, avg),
                         React.createElement("span", { className: "mono", style: { color: C.inkSoft, fontSize: 14 } }, " / 5.0"))),
                 React.createElement("svg", { viewBox: `0 0 ${SIZE} ${SIZE}`, width: "100%", role: "img", "aria-label": "\u041A\u043E\u043B\u0435\u0441\u043E \u043A\u043E\u043C\u043F\u0435\u0442\u0435\u043D\u0446\u0438\u0439" },
                     Array.from({ length: RINGS }).map((_, i) => (React.createElement("circle", { key: i, cx: CENTER, cy: CENTER, r: ((i + 1) / RINGS) * RADIUS, fill: "none", stroke: C.grid, strokeWidth: 1 }))),
@@ -598,7 +607,9 @@ function App() {
                 React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" } },
                     React.createElement("div", { style: { display: "inline-flex", background: C.bg, border: `1px solid ${C.line}`, borderRadius: 9, padding: 2 } },
                         React.createElement(RoleTab, { active: role === "self", color: C.accent, onClick: () => setRole("self") }, "\u0421\u0430\u043C\u043E\u043E\u0446\u0435\u043D\u043A\u0430"),
-                        React.createElement(RoleTab, { active: role === "manager", color: C.manager, onClick: () => setRole("manager") }, "\u0420\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C")),
+                        React.createElement(RoleTab, { active: role === "manager", color: C.manager, onClick: () => setRole("manager") }, "\u0420\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C"),
+                        React.createElement(RoleTab, { active: role === "target", color: C.target, onClick: () => setRole("target") }, "\u0426\u0435\u043B\u044C")),
+                    role === "target" && (React.createElement("span", { style: { fontSize: 11, color: C.target, flexBasis: "100%", order: 3, marginTop: 2 } }, "\u0421\u0442\u0430\u0432\u0438\u0442\u0435 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u2014 \u0434\u043E\u0433\u043E\u0432\u043E\u0440\u0451\u043D\u043D\u043E\u0441\u0442\u044C \u043F\u043E \u0438\u0442\u043E\u0433\u0430\u043C 1-1. \u041E\u043D \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u0438\u0442\u0441\u044F \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0435 \u0441\u0440\u0435\u0437\u044B \u0438 \u0437\u0430\u0434\u0430\u0451\u0442 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u0432 \u0418\u041F\u0420.")),
                     React.createElement("button", { onClick: () => setShowGap((v) => !v), style: { background: showGap ? C.manager : "transparent", color: showGap ? C.bg : C.inkSoft, border: `1px solid ${showGap ? C.manager : C.line}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: showGap ? 600 : 400, cursor: "pointer", fontFamily: "inherit" } }, showGap ? "Расхождение: вкл" : "Показать расхождение")),
                 DOMAINS.map((d) => {
                     var _a;
@@ -610,7 +621,10 @@ function App() {
                     const delta = prevScores ? val - prevScores[d.key] : null;
                     const isOpen = openDomain === d.key;
                     const pItem = ((_a = active.plan) === null || _a === void 0 ? void 0 : _a[d.key]) || emptyPlanItem();
-                    const nextLevel = levelAnchor(d, Math.min(selfV + 1, 5));
+                    const tgtV = targets[d.key];
+                    // Целевой уровень для ИПР — это договорённая цель (если она выше текущей)
+                    const idpTarget = tgtV > selfV ? tgtV : Math.min(selfV + 1, 5);
+                    const nextLevel = levelAnchor(d, idpTarget);
                     return (React.createElement("div", { key: d.key, style: { marginBottom: 14 } },
                         React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 } },
                             React.createElement("button", { onClick: () => setOpenDomain(isOpen ? null : d.key), "aria-expanded": isOpen, style: { display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, cursor: "pointer", color: isOpen ? C.accent : C.ink, fontSize: 13, fontFamily: "inherit" } },
@@ -618,13 +632,13 @@ function App() {
                                 React.createElement("span", { style: { borderBottom: `1px dotted ${C.inkSoft}` } }, d.label),
                                 pItem.inIdp && React.createElement("span", { title: "\u0412\u0437\u044F\u0442\u043E \u0432 \u0418\u041F\u0420", style: { width: 6, height: 6, borderRadius: "50%", background: C.target, display: "inline-block" } })),
                             React.createElement("span", { style: { display: "flex", gap: 8, alignItems: "baseline" } },
-                                showGap && gap !== 0 && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.manager, border: `1px solid ${C.manager}`, borderRadius: 5, padding: "0 4px" }, title: "\u0420\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0435: \u0440\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C \u2212 \u0441\u0430\u043C\u043E\u043E\u0446\u0435\u043D\u043A\u0430" },
+                                showGap && role !== "target" && gap !== 0 && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.manager, border: `1px solid ${C.manager}`, borderRadius: 5, padding: "0 4px" }, title: "\u0420\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0435: \u0440\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C \u2212 \u0441\u0430\u043C\u043E\u043E\u0446\u0435\u043D\u043A\u0430" },
                                     gap > 0 ? "+" : "",
                                     gap)),
                                 delta != null && delta !== 0 && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: delta > 0 ? C.accent : C.prev } },
                                     delta > 0 ? "▲" : "▼",
                                     Math.abs(delta))),
-                                React.createElement("span", { className: "mono", style: { fontSize: 15, fontWeight: 600, color: role === "self" ? C.accent : C.manager } }, val))),
+                                React.createElement("span", { className: "mono", style: { fontSize: 15, fontWeight: 600, color: roleColor } }, val))),
                         isOpen && (React.createElement("div", { style: { background: C.panelSoft, border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 12, lineHeight: 1.5 } },
                             React.createElement("div", { style: { color: C.ink } }, d.desc),
                             React.createElement("div", { style: { color: C.inkSoft, marginTop: 6 } }, d.growth),
@@ -635,12 +649,13 @@ function App() {
                                     pItem.inIdp && nextLevel && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.inkSoft, marginLeft: "auto" } },
                                         selfV,
                                         " \u2192 ",
-                                        Math.min(selfV + 1, 5)))),
+                                        idpTarget,
+                                        tgtV > selfV ? " (цель)" : ""))),
                                 pItem.inIdp && (React.createElement(React.Fragment, null,
                                     React.createElement("div", { style: { background: C.bg, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 10px", marginBottom: 10 } },
                                         React.createElement("div", { className: "mono", style: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginBottom: 4 } },
                                             "\u041F\u0420\u041E\u042F\u0412\u041B\u0415\u041D\u0418\u042F, \u0422\u0420\u0415\u0411\u0423\u042E\u0429\u0418\u0415 \u0420\u0410\u0417\u0412\u0418\u0422\u0418\u042F (\u0423\u0420\u041E\u0412\u0415\u041D\u042C ",
-                                            Math.min(selfV + 1, 5),
+                                            idpTarget,
                                             ")"),
                                         React.createElement("div", { style: { fontSize: 12, color: C.ink, lineHeight: 1.45 } }, nextLevel)),
                                     React.createElement(IdpField, { label: "70% \u2014 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0435\u043C \u043C\u0435\u0441\u0442\u0435", hint: "\u0412\u043B\u0438\u044F\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0435 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B: \u043A\u0430\u043A\u0443\u044E \u0437\u0430\u0434\u0430\u0447\u0443/\u0440\u0438\u0442\u0443\u0430\u043B \u0432\u043E\u0437\u044C\u043C\u0443, \u0447\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u044E \u0432 \u0441\u0432\u043E\u0435\u0439 \u043F\u0440\u0430\u043A\u0442\u0438\u043A\u0435", color: C.accent, value: pItem.a70, onChange: (v) => setPlan(d.key, "a70", v) }),

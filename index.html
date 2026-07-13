@@ -62,29 +62,87 @@ const DRIVE_FILENAME = "coach-wheel-data.json";
 const DOMAINS = [
     { key: "teaching", label: "Обучение", full: "Teaching",
         desc: "Передача знаний по Agile, Scrum, Kanban, OKR. Дизайн обучающих сессий под уровень аудитории.",
-        growth: "1: пересказываю материалы. 3: адаптирую под контекст команды и разбираю их кейсы. 5: строю программы обучения, готовлю других тренеров." },
+        growth: "1: пересказываю материалы. 3: адаптирую под контекст команды и разбираю их кейсы. 5: строю программы обучения, готовлю других тренеров.",
+        anchors: {
+            1: "Провожу обучение по готовому материалу, не отклоняясь от него. Затрудняюсь ответить на вопросы вне сценария.",
+            2: "Провожу типовые обучающие сессии самостоятельно. Отвечаю на вопросы по своей теме, но теряюсь на нестандартных.",
+            3: "Адаптирую материал под контекст и зрелость команды, разбираю их реальные кейсы вместо абстрактных примеров.",
+            4: "Проектирую обучение под цель бизнеса, связываю темы между собой, работаю со смешанной и сопротивляющейся аудиторией.",
+            5: "Выстраиваю программы обучения на уровне организации, готовлю и развиваю других тренеров."
+        } },
     { key: "mentoring", label: "Наставничество", full: "Mentoring",
         desc: "Развитие человека в конкретной роли через передачу личного опыта и разбор его ситуаций.",
-        growth: "1: даю советы из своей практики. 3: подбираю пример под задачу подопечного, а не рассказываю про себя. 5: развиваю менторов, вижу траекторию роли на годы." },
+        growth: "1: даю советы из своей практики. 3: подбираю пример под задачу подопечного, а не рассказываю про себя. 5: развиваю менторов, вижу траекторию роли на годы.",
+        anchors: {
+            1: "Делюсь своим опытом в формате рассказа, слабо связывая его с задачей подопечного.",
+            2: "Разбираю ситуации подопечного, даю рабочие рекомендации по типовым проблемам роли.",
+            3: "Подбираю пример и глубину под задачу подопечного; помогаю ему сформулировать собственный следующий шаг.",
+            4: "Веду развитие в роли системно: вижу дефициты, выстраиваю траекторию, даю трудную обратную связь без разрушения отношений.",
+            5: "Развиваю менторов, формирую практику наставничества, вижу траекторию роли на горизонте лет."
+        } },
     { key: "facilitating", label: "Фасилитация", full: "Facilitating",
         desc: "Нейтральное ведение групп к решению. Дизайн воркшопов, работа с конфликтом и молчунами.",
-        growth: "1: веду по готовому сценарию. 3: перестраиваю процесс на ходу, держу нейтралитет под напряжением. 5: проектирую сложные мультикомандные сессии (PI planning и т.п.)." },
+        growth: "1: веду по готовому сценарию. 3: перестраиваю процесс на ходу, держу нейтралитет под напряжением. 5: проектирую сложные мультикомандные сессии (PI planning и т.п.).",
+        anchors: {
+            1: "Веду встречу по готовому сценарию. При отклонении группы от плана теряю управление.",
+            2: "Провожу типовые встречи (ретро, планирование) самостоятельно, добиваюсь результата в спокойной группе.",
+            3: "Перестраиваю процесс на ходу под то, что происходит в группе. Удерживаю нейтралитет при напряжении, включаю молчунов.",
+            4: "Проектирую сессию под сложную цель: развожу конфликт интересов, работаю с властной динамикой, довожу группу до решения.",
+            5: "Проектирую и веду мультикомандные события (PI planning, стратсессии), развиваю фасилитаторов."
+        } },
     { key: "coaching", label: "Проф. коучинг", full: "Professional Coaching",
         desc: "Коуч-позиция без экспертной шапки: сильные вопросы, работа с целями клиента, а не своими.",
-        growth: "1: путаю коучинг с советами. 3: удерживаю позицию, задаю вопросы, от которых клиент думает сам. 5: коучу на уровне организации, супервизирую коучей." },
+        growth: "1: путаю коучинг с советами. 3: удерживаю позицию, задаю вопросы, от которых клиент думает сам. 5: коучу на уровне организации, супервизирую коучей.",
+        anchors: {
+            1: "Под видом коучинга даю советы. Веду клиента к своему ответу.",
+            2: "Задаю открытые вопросы, работаю по структуре сессии, но соскальзываю в экспертную позицию под давлением.",
+            3: "Устойчиво удерживаю коуч-позицию. Задаю вопросы, после которых клиент думает сам и находит собственный ответ.",
+            4: "Работаю с глубинными запросами: убеждениями, ценностями, сопротивлением. Коучу руководителей.",
+            5: "Коучу на уровне команд и организации, провожу супервизию других коучей."
+        } },
     { key: "agileLean", label: "Agile / Lean", full: "Agile-Lean практики",
         desc: "Глубина методологий: Scrum, Kanban, SAFe, OKR, потоковые метрики, LPM.",
-        growth: "1: знаю фреймворки по книге. 3: осознанно выбираю практику под контекст, вижу анти-паттерны. 5: комбинирую подходы, формирую метод под организацию." },
+        growth: "1: знаю фреймворки по книге. 3: осознанно выбираю практику под контекст, вижу анти-паттерны. 5: комбинирую подходы, формирую метод под организацию.",
+        anchors: {
+            1: "Знаю фреймворки по книге, применяю их предписанным образом без учёта контекста.",
+            2: "Уверенно внедряю практики в типовой команде, объясняю их смысл, вижу очевидные отклонения.",
+            3: "Осознанно выбираю практику под контекст и распознаю анти-паттерны, в том числе карго-культ.",
+            4: "Работаю с потоком на уровне нескольких команд: метрики, зависимости, управление портфелем.",
+            5: "Комбинирую подходы и формирую метод под конкретную организацию, а не подгоняю её под фреймворк."
+        } },
     { key: "technical", label: "Тех. мастерство", full: "Technical Mastery",
         desc: "Понимание инженерных практик (CI/CD, XP, DevOps, тест-стратегии) для диалога с командами на равных.",
-        growth: "1: термины знаю, глубины нет. 3: предметно обсуждаю тех-долг и практики с инженерами. 5: помогаю выстраивать инженерную культуру и архитектурные ритмы." },
+        growth: "1: термины знаю, глубины нет. 3: предметно обсуждаю тех-долг и практики с инженерами. 5: помогаю выстраивать инженерную культуру и архитектурные ритмы.",
+        anchors: {
+            1: "Знаю термины, но не понимаю сути инженерных практик. В техническом разговоре теряю нить.",
+            2: "Понимаю базовые практики (CI/CD, тесты, ревью), могу задать осмысленный вопрос инженеру.",
+            3: "Предметно обсуждаю тех-долг, качество и инженерные практики с командой, распознаю отговорки.",
+            4: "Влияю на инженерные решения: помогаю команде выбрать стратегию тестирования, ветвления, работы с долгом.",
+            5: "Выстраиваю инженерную культуру и архитектурные ритмы на уровне нескольких команд."
+        } },
     { key: "business", label: "Бизнес / Трансформация", full: "Business & Transformation",
         desc: "Оргдизайн, модели изменений (ADKAR, Kotter), работа с C-level, управление портфелем.",
-        growth: "1: работаю на уровне команды. 3: связываю работу команд со стратегией, веду изменения по фазам. 5: проектирую трансформацию организации, партнёрю с C-level." },
+        growth: "1: работаю на уровне команды. 3: связываю работу команд со стратегией, веду изменения по фазам. 5: проектирую трансформацию организации, партнёрю с C-level.",
+        anchors: {
+            1: "Работаю только на уровне своей команды, не вижу связи со стратегией и бизнес-результатом.",
+            2: "Понимаю цели бизнеса, объясняю команде, зачем нужна их работа. Участвую в изменениях как исполнитель.",
+            3: "Связываю работу команд со стратегией. Веду изменение по фазам, работаю с сопротивлением осознанно.",
+            4: "Проектирую изменения на уровне блока: оргдизайн, стейкхолдеры, коалиция поддержки. Влияю на руководителей уровня C-1.",
+            5: "Проектирую трансформацию организации, выступаю партнёром C-level, отвечаю за системный результат."
+        } },
     { key: "self", label: "Работа с собой", full: "Self-Mastery",
         desc: "Саморефлексия, управление своими реакциями и статус-угрозой, присутствие, этика роли.",
-        growth: "1: реагирую автоматически. 3: замечаю свои триггеры в моменте и выбираю ответ. 5: устойчив под давлением, служу зеркалом для системы, держу этические границы." },
+        growth: "1: реагирую автоматически. 3: замечаю свои триггеры в моменте и выбираю ответ. 5: устойчив под давлением, служу зеркалом для системы, держу этические границы.",
+        anchors: {
+            1: "Реагирую автоматически. Осознаю свои реакции только задним числом, если вообще осознаю.",
+            2: "Знаю свои типичные триггеры, разбираю ситуации после. В моменте всё ещё захватывает.",
+            3: "Замечаю триггер в моменте и выбираю ответ вместо реакции. Признаю ошибку без разрушения самооценки.",
+            4: "Сохраняю устойчивость под давлением и публичной критикой. Использую свои реакции как данные о системе.",
+            5: "Служу зеркалом для системы, удерживаю этические границы роли даже ценой конфликта с заказчиком."
+        } },
 ];
+// Достаёт формулировку целевого проявления для уровня
+const levelAnchor = (d, lvl) => (d.anchors && d.anchors[lvl]) || "";
 const LEVELS = {
     1: { name: "Beginner", desc: "Знаю теорию, применяю по шаблону под присмотром." },
     2: { name: "Practitioner", desc: "Работаю самостоятельно в типовых ситуациях." },
@@ -115,7 +173,18 @@ function wheelPath(scores) {
 }
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const emptyScores = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 3]));
-const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, { action: "", due: "" }]));
+const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, { inIdp: false, a70: "", a20: "", a10: "", due: "" }]));
+const emptyPlanItem = () => ({ inIdp: false, a70: "", a20: "", a10: "", due: "" });
+// Миграция старого поля action -> a70
+const migratePlanItem = (p) => {
+    if (!p)
+        return emptyPlanItem();
+    if (p.action !== undefined && p.a70 === undefined) {
+        return { inIdp: !!(p.action || "").trim(), a70: p.action || "", a20: "", a10: "", due: p.due || "" };
+    }
+    return { inIdp: !!p.inIdp, a70: p.a70 || "", a20: p.a20 || "", a10: p.a10 || "", due: p.due || "" };
+};
+const migratePlan = (plan) => Object.fromEntries(DOMAINS.map((d) => [d.key, migratePlanItem(plan === null || plan === void 0 ? void 0 : plan[d.key])]));
 // Нормализация снапшотов (миграция старых форматов)
 function normalizeSnapshots(arr) {
     return arr.map((s) => ({
@@ -123,7 +192,7 @@ function normalizeSnapshots(arr) {
         selfScores: s.selfScores || s.scores || emptyScores(),
         managerScores: s.managerScores || emptyScores(),
         note: s.note || "",
-        plan: s.plan || emptyPlan(),
+        plan: migratePlan(s.plan),
     }));
 }
 // ══════════════════════════════════════════════════════════════════
@@ -267,7 +336,7 @@ function App() {
     };
     const setNote = (note) => setSnapshots((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, note } : s)));
     const setPlan = (key, field, value) => {
-        setSnapshots((prev) => prev.map((s, i) => { var _a; return i === activeIdx ? { ...s, plan: { ...s.plan, [key]: { ...(((_a = s.plan) === null || _a === void 0 ? void 0 : _a[key]) || { action: "", due: "" }), [field]: value } } } : s; }));
+        setSnapshots((prev) => prev.map((s, i) => { var _a; return i === activeIdx ? { ...s, plan: { ...s.plan, [key]: { ...(((_a = s.plan) === null || _a === void 0 ? void 0 : _a[key]) || emptyPlanItem()), [field]: value } } } : s; }));
     };
     const addSnapshot = () => {
         const next = { date: todayISO(), selfScores: { ...active.selfScores }, managerScores: { ...active.managerScores }, note: "", plan: emptyPlan() };
@@ -281,6 +350,86 @@ function App() {
         setSnapshots((prev) => prev.filter((_, i) => i !== idx));
         setActiveIdx(0);
         setCompareIdx(null);
+    };
+    // ─── Выгрузка ИПР в печатную форму (PDF через печать браузера) ───
+    const exportIdp = () => {
+        const rows = DOMAINS
+            .map((d) => { var _a; return ({ d, p: ((_a = active.plan) === null || _a === void 0 ? void 0 : _a[d.key]) || emptyPlanItem(), lvl: active.selfScores[d.key] }); })
+            .filter((r) => r.p.inIdp);
+        if (rows.length === 0) {
+            alert("Ни одна компетенция не отмечена «Взять в ИПР».\n\nОтметь 2–3 приоритетных домена — они попадут в план развития.");
+            return;
+        }
+        const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const dash = "—";
+        const fmtDue = (due) => {
+            if (!due)
+                return dash;
+            const [y, m] = due.split("-");
+            const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+            return months[+m - 1] + " " + y;
+        };
+        const body = rows.map((r) => {
+            const target = Math.min(r.lvl + 1, 5);
+            const acts = [];
+            if (r.p.a70.trim())
+                acts.push('<div class="act"><span class="tag t70">70%</span>' + esc(r.p.a70) + '</div>');
+            if (r.p.a20.trim())
+                acts.push('<div class="act"><span class="tag t20">20%</span>' + esc(r.p.a20) + '</div>');
+            if (r.p.a10.trim())
+                acts.push('<div class="act"><span class="tag t10">10%</span>' + esc(r.p.a10) + '</div>');
+            return '<tr>' +
+                '<td class="comp"><b>' + esc(r.d.label) + '</b><div class="lvl">текущий уровень: ' + r.lvl + ' → целевой: ' + target + '</div></td>' +
+                '<td>' + esc(levelAnchor(r.d, target)) + '</td>' +
+                '<td>' + (acts.length ? acts.join("") : '<span class="empty">' + dash + '</span>') + '</td>' +
+                '<td class="due">' + fmtDue(r.p.due) + '</td>' +
+                '</tr>';
+        }).join("");
+        const html = '<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>ИПР — ' + esc(active.date) + '</title><style>' +
+            '@page { size: A4 landscape; margin: 14mm; }' +
+            'body { font-family: Georgia, "Times New Roman", serif; color: #1a1a1a; margin: 0; padding: 24px; }' +
+            'h1 { font-size: 20px; margin: 0 0 4px; }' +
+            '.meta { font-size: 12px; color: #666; margin-bottom: 18px; }' +
+            '.meta span { margin-right: 18px; }' +
+            'table { width: 100%; border-collapse: collapse; font-size: 12px; }' +
+            'th { background: #f0f2f5; text-align: left; padding: 9px 10px; border: 1px solid #c8ccd4; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; font-family: system-ui, sans-serif; }' +
+            'td { border: 1px solid #c8ccd4; padding: 9px 10px; vertical-align: top; line-height: 1.45; }' +
+            'td.comp { width: 17%; }' +
+            'td.comp b { font-size: 13px; }' +
+            '.lvl { font-size: 11px; color: #666; margin-top: 4px; font-family: system-ui, sans-serif; }' +
+            'td.due { width: 11%; white-space: nowrap; }' +
+            '.act { margin-bottom: 7px; }' +
+            '.act:last-child { margin-bottom: 0; }' +
+            '.tag { display: inline-block; font-family: system-ui, sans-serif; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; margin-right: 6px; vertical-align: 1px; }' +
+            '.t70 { background: #d8f3ec; color: #14705c; }' +
+            '.t20 { background: #dbe8fb; color: #1b4f8f; }' +
+            '.t10 { background: #e6e2fb; color: #443a8f; }' +
+            '.empty { color: #999; }' +
+            '.sign { margin-top: 28px; font-size: 12px; display: flex; gap: 60px; }' +
+            '.sign div { border-top: 1px solid #999; padding-top: 5px; min-width: 210px; color: #666; }' +
+            '@media print { body { padding: 0; } .noprint { display: none; } }' +
+            '.noprint { margin-bottom: 16px; }' +
+            '.noprint button { font-size: 13px; padding: 8px 16px; cursor: pointer; border: 1px solid #888; background: #fff; border-radius: 5px; }' +
+            '</style></head><body>' +
+            '<div class="noprint"><button onclick="window.print()">Печать / Сохранить в PDF</button></div>' +
+            '<h1>Индивидуальный план развития</h1>' +
+            '<div class="meta"><span><b>Дата среза:</b> ' + esc(active.date) + '</span>' +
+            '<span><b>Компетенций в плане:</b> ' + rows.length + '</span></div>' +
+            '<table><thead><tr>' +
+            '<th>Компетенция для развития</th>' +
+            '<th>Проявления компетенции, требующие развития</th>' +
+            '<th>Действие, направленное на развитие</th>' +
+            '<th>Срок</th>' +
+            '</tr></thead><tbody>' + body + '</tbody></table>' +
+            '<div class="sign"><div>Коуч — подпись, дата</div><div>Руководитель — подпись, дата</div></div>' +
+            '</body></html>';
+        const w = window.open("", "_blank");
+        if (!w) {
+            alert("Браузер заблокировал новое окно. Разреши всплывающие окна для этого сайта и попробуй снова.");
+            return;
+        }
+        w.document.write(html);
+        w.document.close();
     };
     const exportJSON = () => {
         const data = { wheelVersion: "v1-8domains", targets, snapshots };
@@ -382,6 +531,7 @@ function App() {
         const diffs = DOMAINS.map((d) => Math.abs((active.selfScores[d.key] || 0) - (active.managerScores[d.key] || 0)));
         return (diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1);
     }, [active]);
+    const idpCount = useMemo(() => DOMAINS.filter((d) => { var _a, _b; return (_b = (_a = active.plan) === null || _a === void 0 ? void 0 : _a[d.key]) === null || _b === void 0 ? void 0 : _b.inIdp; }).length, [active]);
     const connected = drive.status === "connected";
     return (React.createElement("div", { style: { minHeight: "100vh", background: C.bg, color: C.ink, fontFamily: "'Inter', system-ui, sans-serif", padding: "clamp(16px,3vw,40px)" } },
         React.createElement("style", null, `
@@ -451,7 +601,7 @@ function App() {
                         React.createElement(RoleTab, { active: role === "manager", color: C.manager, onClick: () => setRole("manager") }, "\u0420\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C")),
                     React.createElement("button", { onClick: () => setShowGap((v) => !v), style: { background: showGap ? C.manager : "transparent", color: showGap ? C.bg : C.inkSoft, border: `1px solid ${showGap ? C.manager : C.line}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: showGap ? 600 : 400, cursor: "pointer", fontFamily: "inherit" } }, showGap ? "Расхождение: вкл" : "Показать расхождение")),
                 DOMAINS.map((d) => {
-                    var _a, _b, _c, _d, _e, _f, _g;
+                    var _a;
                     const val = activeScores[d.key];
                     const selfV = active.selfScores[d.key];
                     const mgrV = active.managerScores[d.key];
@@ -459,12 +609,14 @@ function App() {
                     const prevScores = compare ? (role === "self" ? compare.selfScores : compare.managerScores) : null;
                     const delta = prevScores ? val - prevScores[d.key] : null;
                     const isOpen = openDomain === d.key;
+                    const pItem = ((_a = active.plan) === null || _a === void 0 ? void 0 : _a[d.key]) || emptyPlanItem();
+                    const nextLevel = levelAnchor(d, Math.min(selfV + 1, 5));
                     return (React.createElement("div", { key: d.key, style: { marginBottom: 14 } },
                         React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 } },
                             React.createElement("button", { onClick: () => setOpenDomain(isOpen ? null : d.key), "aria-expanded": isOpen, style: { display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, cursor: "pointer", color: isOpen ? C.accent : C.ink, fontSize: 13, fontFamily: "inherit" } },
                                 React.createElement("span", { style: { fontSize: 10, color: C.inkSoft, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" } }, "\u25B6"),
                                 React.createElement("span", { style: { borderBottom: `1px dotted ${C.inkSoft}` } }, d.label),
-                                ((_c = (_b = (_a = active.plan) === null || _a === void 0 ? void 0 : _a[d.key]) === null || _b === void 0 ? void 0 : _b.action) === null || _c === void 0 ? void 0 : _c.trim()) && React.createElement("span", { title: "\u0415\u0441\u0442\u044C \u0437\u0430\u043F\u0438\u0441\u044C \u0432 \u043F\u043B\u0430\u043D\u0435", style: { width: 6, height: 6, borderRadius: "50%", background: C.target, display: "inline-block" } })),
+                                pItem.inIdp && React.createElement("span", { title: "\u0412\u0437\u044F\u0442\u043E \u0432 \u0418\u041F\u0420", style: { width: 6, height: 6, borderRadius: "50%", background: C.target, display: "inline-block" } })),
                             React.createElement("span", { style: { display: "flex", gap: 8, alignItems: "baseline" } },
                                 showGap && gap !== 0 && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.manager, border: `1px solid ${C.manager}`, borderRadius: 5, padding: "0 4px" }, title: "\u0420\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0435: \u0440\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C \u2212 \u0441\u0430\u043C\u043E\u043E\u0446\u0435\u043D\u043A\u0430" },
                                     gap > 0 ? "+" : "",
@@ -477,17 +629,26 @@ function App() {
                             React.createElement("div", { style: { color: C.ink } }, d.desc),
                             React.createElement("div", { style: { color: C.inkSoft, marginTop: 6 } }, d.growth),
                             React.createElement("div", { style: { borderTop: `1px solid ${C.line}`, margin: "10px 0", paddingTop: 10 } },
-                                React.createElement("div", { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 } },
-                                    React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.accent, letterSpacing: 0.5 } }, "\u041C\u041E\u0419 \u0421\u041B\u0415\u0414\u0423\u042E\u0429\u0418\u0419 \u0428\u0410\u0413"),
-                                    targets[d.key] > selfV && React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.target } },
-                                        "\u0446\u0435\u043B\u044C ",
-                                        targets[d.key],
-                                        " \u00B7 +",
-                                        targets[d.key] - selfV)),
-                                React.createElement("textarea", { value: ((_e = (_d = active.plan) === null || _d === void 0 ? void 0 : _d[d.key]) === null || _e === void 0 ? void 0 : _e.action) || "", onChange: (e) => setPlan(d.key, "action", e.target.value), placeholder: `Что сделаю до следующего среза, чтобы двигаться к уровню ${Math.min(selfV + 1, 5)}…`, style: { width: "100%", minHeight: 44, background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 8px", fontSize: 12, fontFamily: "inherit", resize: "vertical", lineHeight: 1.4 } }),
-                                React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 } },
-                                    React.createElement("label", { style: { fontSize: 11, color: C.inkSoft } }, "\u0421\u0440\u043E\u043A:"),
-                                    React.createElement("input", { type: "month", value: ((_g = (_f = active.plan) === null || _f === void 0 ? void 0 : _f[d.key]) === null || _g === void 0 ? void 0 : _g.due) || "", onChange: (e) => setPlan(d.key, "due", e.target.value), style: { background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "4px 8px", fontSize: 12, fontFamily: "inherit", colorScheme: "dark" } }))))),
+                                React.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: pItem.inIdp ? 10 : 0 } },
+                                    React.createElement("input", { type: "checkbox", checked: pItem.inIdp, onChange: (e) => setPlan(d.key, "inIdp", e.target.checked), style: { width: 15, height: 15, accentColor: C.target, cursor: "pointer" } }),
+                                    React.createElement("span", { className: "mono", style: { fontSize: 11, color: pItem.inIdp ? C.target : C.inkSoft, letterSpacing: 0.5 } }, "\u0412\u0417\u042F\u0422\u042C \u0412 \u0418\u041F\u0420"),
+                                    pItem.inIdp && nextLevel && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.inkSoft, marginLeft: "auto" } },
+                                        selfV,
+                                        " \u2192 ",
+                                        Math.min(selfV + 1, 5)))),
+                                pItem.inIdp && (React.createElement(React.Fragment, null,
+                                    React.createElement("div", { style: { background: C.bg, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 10px", marginBottom: 10 } },
+                                        React.createElement("div", { className: "mono", style: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginBottom: 4 } },
+                                            "\u041F\u0420\u041E\u042F\u0412\u041B\u0415\u041D\u0418\u042F, \u0422\u0420\u0415\u0411\u0423\u042E\u0429\u0418\u0415 \u0420\u0410\u0417\u0412\u0418\u0422\u0418\u042F (\u0423\u0420\u041E\u0412\u0415\u041D\u042C ",
+                                            Math.min(selfV + 1, 5),
+                                            ")"),
+                                        React.createElement("div", { style: { fontSize: 12, color: C.ink, lineHeight: 1.45 } }, nextLevel)),
+                                    React.createElement(IdpField, { label: "70% \u2014 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0435\u043C \u043C\u0435\u0441\u0442\u0435", hint: "\u0412\u043B\u0438\u044F\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0435 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B: \u043A\u0430\u043A\u0443\u044E \u0437\u0430\u0434\u0430\u0447\u0443/\u0440\u0438\u0442\u0443\u0430\u043B \u0432\u043E\u0437\u044C\u043C\u0443, \u0447\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u044E \u0432 \u0441\u0432\u043E\u0435\u0439 \u043F\u0440\u0430\u043A\u0442\u0438\u043A\u0435", color: C.accent, value: pItem.a70, onChange: (v) => setPlan(d.key, "a70", v) }),
+                                    React.createElement(IdpField, { label: "20% \u2014 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 \u043E\u043A\u0440\u0443\u0436\u0435\u043D\u0438\u0435", hint: "\u041C\u0435\u043D\u0442\u043E\u0440\u0438\u043D\u0433, \u043A\u043E\u0443\u0447\u0438\u043D\u0433, \u043E\u0431\u0440\u0430\u0442\u043D\u0430\u044F \u0441\u0432\u044F\u0437\u044C, \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435 \u0437\u0430 \u0441\u0438\u043B\u044C\u043D\u044B\u043C\u0438 \u043A\u043E\u043B\u043B\u0435\u0433\u0430\u043C\u0438, \u0441\u0443\u043F\u0435\u0440\u0432\u0438\u0437\u0438\u044F", color: C.manager, value: pItem.a20, onChange: (v) => setPlan(d.key, "a20", v) }),
+                                    React.createElement(IdpField, { label: "10% \u2014 \u0442\u0435\u043E\u0440\u0435\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0435 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435", hint: "\u041B\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430, \u043A\u0443\u0440\u0441\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u043A\u043E\u043D\u0444\u0435\u0440\u0435\u043D\u0446\u0438\u0438", color: C.target, value: pItem.a10, onChange: (v) => setPlan(d.key, "a10", v) }),
+                                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 8 } },
+                                        React.createElement("label", { style: { fontSize: 11, color: C.inkSoft } }, "\u0421\u0440\u043E\u043A:"),
+                                        React.createElement("input", { type: "month", value: pItem.due, onChange: (e) => setPlan(d.key, "due", e.target.value), style: { background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "4px 8px", fontSize: 12, fontFamily: "inherit", colorScheme: "dark" } }))))))),
                         React.createElement("input", { type: "range", min: 1, max: 5, step: 1, value: val, onChange: (e) => setScore(d.key, +e.target.value), style: { width: "100%" }, "aria-label": `${d.label}: уровень ${val}` })));
                 }),
                 React.createElement("textarea", { value: active.note, onChange: (e) => setNote(e.target.value), placeholder: "\u0417\u0430\u043C\u0435\u0442\u043A\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443 \u0441\u0440\u0435\u0437\u0443 \u2014 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442 \u0444\u0430\u0437\u044B, \u043E\u0431\u0449\u0438\u0439 \u0432\u044B\u0432\u043E\u0434 \u0434\u043B\u044F 1-1. \u041A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0435 \u0448\u0430\u0433\u0438 \u043F\u0438\u0448\u0438 \u0432 \u00AB\u041C\u043E\u0439 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0448\u0430\u0433\u00BB \u0432\u043D\u0443\u0442\u0440\u0438 \u0434\u043E\u043C\u0435\u043D\u0430.", style: { width: "100%", marginTop: 8, minHeight: 60, background: C.panelSoft, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 10, padding: 10, fontSize: 13, fontFamily: "inherit", resize: "vertical" } }))),
@@ -495,7 +656,10 @@ function App() {
             React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 } },
                 React.createElement("div", { className: "mono", style: { fontSize: 12, color: C.inkSoft, letterSpacing: 1 } }, "\u0421\u0420\u0415\u0417\u042B \u0412\u041E \u0412\u0420\u0415\u041C\u0415\u041D\u0418"),
                 React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-                    React.createElement(Btn, { onClick: addSnapshot, primary: true }, "+ \u041D\u043E\u0432\u044B\u0439 \u0441\u0440\u0435\u0437"),
+                    React.createElement(Btn, { onClick: exportIdp, primary: true },
+                        "\u0412\u044B\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0418\u041F\u0420",
+                        idpCount > 0 ? " (" + idpCount + ")" : ""),
+                    React.createElement(Btn, { onClick: addSnapshot }, "+ \u041D\u043E\u0432\u044B\u0439 \u0441\u0440\u0435\u0437"),
                     React.createElement(Btn, { onClick: () => setShowTarget((v) => !v) }, showTarget ? "Скрыть цель" : "Показать цель"),
                     React.createElement(Btn, { onClick: exportJSON }, "\u042D\u043A\u0441\u043F\u043E\u0440\u0442 JSON"),
                     React.createElement(Btn, { onClick: () => { var _a; return (_a = fileRef.current) === null || _a === void 0 ? void 0 : _a.click(); } }, "\u0418\u043C\u043F\u043E\u0440\u0442 JSON"),
@@ -510,6 +674,10 @@ function App() {
                         React.createElement("button", { onClick: (e) => { e.stopPropagation(); setCompareIdx(isCompare ? null : i); }, style: { fontSize: 10, background: "none", border: `1px solid ${isCompare ? C.prev : C.line}`, color: isCompare ? C.prev : C.inkSoft, borderRadius: 6, padding: "2px 6px", cursor: "pointer" } }, isCompare ? "сравн. ✓" : "сравнить"),
                         snapshots.length > 1 && (React.createElement("button", { onClick: (e) => { e.stopPropagation(); removeSnapshot(i); }, style: { fontSize: 10, background: "none", border: `1px solid ${C.line}`, color: C.inkSoft, borderRadius: 6, padding: "2px 6px", cursor: "pointer" } }, "\u2715")))));
             })),
+            idpCount > 3 && (React.createElement("p", { style: { fontSize: 11, color: C.warn, marginTop: 12, lineHeight: 1.5, background: C.panelSoft, border: `1px solid ${C.warn}`, borderRadius: 8, padding: "8px 10px" } },
+                "\u0412 \u0418\u041F\u0420 \u043E\u0442\u043C\u0435\u0447\u0435\u043D\u043E ",
+                idpCount,
+                " \u043A\u043E\u043C\u043F\u0435\u0442\u0435\u043D\u0446\u0438\u0439. \u041F\u0440\u0430\u043A\u0442\u0438\u043A\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442: \u0431\u043E\u043B\u044C\u0448\u0435 3 \u0432 \u0440\u0430\u0431\u043E\u0442\u0435 \u043E\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u2014 \u0437\u043D\u0430\u0447\u0438\u0442 \u043D\u0438 \u043E\u0434\u043D\u0430 \u043D\u0435 \u0432 \u0444\u043E\u043A\u0443\u0441\u0435. \u0421\u0442\u043E\u0438\u0442 \u0441\u0443\u0437\u0438\u0442\u044C.")),
             React.createElement("p", { style: { fontSize: 11, color: C.inkSoft, marginTop: 14, lineHeight: 1.5 } }, connected
                 ? "Drive подключён. Жми «Сохранить» после изменений — данные пишутся в скрытую папку приложения на твоём Google Drive."
                 : "Подключи Google Drive вверху справа, чтобы срезы сохранялись автоматически. Пока не подключён — данные живут только в этой вкладке (используй Экспорт JSON).")),
@@ -518,6 +686,11 @@ function App() {
                 React.createElement("span", { className: "mono", style: { fontSize: 18, fontWeight: 700, color: C.accent } }, lvl),
                 React.createElement("span", { style: { fontSize: 13, fontWeight: 600 } }, info.name)),
             React.createElement("p", { style: { fontSize: 12, color: C.inkSoft, margin: "6px 0 0", lineHeight: 1.4 } }, info.desc)))))));
+}
+function IdpField({ label, hint, color, value, onChange }) {
+    return (React.createElement("div", { style: { marginBottom: 8 } },
+        React.createElement("div", { className: "mono", style: { fontSize: 10, color: color, letterSpacing: 0.3, marginBottom: 3 } }, label),
+        React.createElement("textarea", { value: value, onChange: (e) => onChange(e.target.value), placeholder: hint, style: { width: "100%", minHeight: 42, background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 8px", fontSize: 12, fontFamily: "inherit", resize: "vertical", lineHeight: 1.4 } })));
 }
 function RoleTab({ children, active, color, onClick }) {
     return (React.createElement("button", { onClick: onClick, style: { background: active ? color : "transparent", color: active ? C.bg : C.inkSoft, border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: active ? 600 : 400, cursor: "pointer", fontFamily: "inherit" } }, children));

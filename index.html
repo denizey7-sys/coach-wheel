@@ -174,16 +174,21 @@ function wheelPath(scores) {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const emptyScores = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 3]));
 const defaultTargets = () => Object.fromEntries(DOMAINS.map((d) => [d.key, 4]));
-const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, { inIdp: false, a70: "", a20: "", a10: "", due: "" }]));
-const emptyPlanItem = () => ({ inIdp: false, a70: "", a20: "", a10: "", due: "" });
+const emptyPlanItem = () => ({ inIdp: false, obsSelf: "", obsMgr: "", obsFinal: "", a70: "", a20: "", a10: "", due: "" });
+const emptyPlan = () => Object.fromEntries(DOMAINS.map((d) => [d.key, emptyPlanItem()]));
 // Миграция старого поля action -> a70
 const migratePlanItem = (p) => {
     if (!p)
         return emptyPlanItem();
+    // очень старый формат: одно поле action
     if (p.action !== undefined && p.a70 === undefined) {
-        return { inIdp: !!(p.action || "").trim(), a70: p.action || "", a20: "", a10: "", due: p.due || "" };
+        return { inIdp: !!(p.action || "").trim(), obsSelf: "", obsMgr: "", obsFinal: "", a70: p.action || "", a20: "", a10: "", due: p.due || "" };
     }
-    return { inIdp: !!p.inIdp, a70: p.a70 || "", a20: p.a20 || "", a10: p.a10 || "", due: p.due || "" };
+    return {
+        inIdp: !!p.inIdp,
+        obsSelf: p.obsSelf || "", obsMgr: p.obsMgr || "", obsFinal: p.obsFinal || "",
+        a70: p.a70 || "", a20: p.a20 || "", a10: p.a10 || "", due: p.due || "",
+    };
 };
 const migratePlan = (plan) => Object.fromEntries(DOMAINS.map((d) => [d.key, migratePlanItem(plan === null || plan === void 0 ? void 0 : plan[d.key])]));
 // Нормализация снапшотов (миграция старых форматов)
@@ -372,6 +377,14 @@ function App() {
             alert("Ни одна компетенция не отмечена «Взять в ИПР».\n\nОтметь 2–3 приоритетных домена — они попадут в план развития.");
             return;
         }
+        const noFinal = rows.filter((r) => !r.p.obsFinal.trim()).map((r) => r.d.label);
+        if (noFinal.length) {
+            const ok = window.confirm("Не согласована формулировка проявлений: " + noFinal.join(", ") + ".\n\n" +
+                "В ИПР вместо неё подставится общий ориентир уровня из модели — это шаблон, а не ваше наблюдение.\n\n" +
+                "Выгрузить всё равно?");
+            if (!ok)
+                return;
+        }
         const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const dash = "—";
         const fmtDue = (due) => {
@@ -393,7 +406,7 @@ function App() {
                 acts.push('<div class="act"><span class="tag t10">10%</span>' + esc(r.p.a10) + '</div>');
             return '<tr>' +
                 '<td class="comp"><b>' + esc(r.d.label) + '</b><div class="lvl">текущий уровень: ' + r.lvl + ' → целевой: ' + target + '</div></td>' +
-                '<td>' + esc(levelAnchor(r.d, target)) + '</td>' +
+                '<td>' + (r.p.obsFinal.trim() ? esc(r.p.obsFinal) : '<span class="empty">' + esc(levelAnchor(r.d, target)) + ' <i>(формулировка не согласована — подставлен ориентир уровня)</i></span>') + '</td>' +
                 '<td>' + (acts.length ? acts.join("") : '<span class="empty">' + dash + '</span>') + '</td>' +
                 '<td class="due">' + fmtDue(r.p.due) + '</td>' +
                 '</tr>';
@@ -417,7 +430,8 @@ function App() {
             '.t70 { background: #d8f3ec; color: #14705c; }' +
             '.t20 { background: #dbe8fb; color: #1b4f8f; }' +
             '.t10 { background: #e6e2fb; color: #443a8f; }' +
-            '.empty { color: #999; }' +
+            '.empty { color: #8a8a8a; }' +
+            '.empty i { font-size: 10px; color: #a94442; font-style: italic; }' +
             '.sign { margin-top: 28px; font-size: 12px; display: flex; gap: 60px; }' +
             '.sign div { border-top: 1px solid #999; padding-top: 5px; min-width: 210px; color: #666; }' +
             '@media print { body { padding: 0; } .noprint { display: none; } }' +
@@ -642,22 +656,30 @@ function App() {
                         isOpen && (React.createElement("div", { style: { background: C.panelSoft, border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 12, lineHeight: 1.5 } },
                             React.createElement("div", { style: { color: C.ink } }, d.desc),
                             React.createElement("div", { style: { color: C.inkSoft, marginTop: 6 } }, d.growth),
+                            React.createElement("div", { style: { background: C.bg, border: `1px dashed ${C.line}`, borderRadius: 6, padding: "8px 10px", marginTop: 10 } },
+                                React.createElement("div", { className: "mono", style: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginBottom: 4 } },
+                                    "\u041E\u0420\u0418\u0415\u041D\u0422\u0418\u0420 \u2014 \u0423\u0420\u041E\u0412\u0415\u041D\u042C ",
+                                    idpTarget,
+                                    tgtV > selfV ? " (ЦЕЛЬ)" : ""),
+                                React.createElement("div", { style: { fontSize: 12, color: C.inkSoft, lineHeight: 1.45 } }, nextLevel)),
+                            React.createElement("div", { style: { borderTop: `1px solid ${C.line}`, margin: "10px 0", paddingTop: 10 } },
+                                React.createElement("div", { className: "mono", style: { fontSize: 11, color: C.inkSoft, letterSpacing: 0.5, marginBottom: 6 } }, "\u0427\u0422\u041E \u041A\u041E\u041D\u041A\u0420\u0415\u0422\u041D\u041E \u0422\u0420\u0415\u0411\u0423\u0415\u0422 \u0420\u0410\u0417\u0412\u0418\u0422\u0418\u042F"),
+                                role !== "target" && (React.createElement(IdpField, { label: role === "self" ? "Наблюдения коуча" : "Наблюдения руководителя", hint: "\u0427\u0442\u043E \u0438\u043C\u0435\u043D\u043D\u043E \u0442\u044B \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0435\u0448\u044C \u0432 \u0440\u0430\u0431\u043E\u0442\u0435 \u2014 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0435 \u0441\u0438\u0442\u0443\u0430\u0446\u0438\u0438, \u0430 \u043D\u0435 \u043E\u0431\u0449\u0438\u0435 \u0441\u043B\u043E\u0432\u0430", color: role === "self" ? C.accent : C.manager, value: role === "self" ? pItem.obsSelf : pItem.obsMgr, onChange: (v) => setPlan(d.key, role === "self" ? "obsSelf" : "obsMgr", v) })),
+                                showGap && role !== "target" && (React.createElement("div", { style: { background: C.bg, border: `1px solid ${role === "self" ? C.manager : C.accent}`, borderRadius: 6, padding: "7px 9px", marginBottom: 8 } },
+                                    React.createElement("div", { className: "mono", style: { fontSize: 10, color: role === "self" ? C.manager : C.accent, marginBottom: 3 } }, role === "self" ? "Наблюдения руководителя" : "Наблюдения коуча"),
+                                    React.createElement("div", { style: { fontSize: 12, color: C.ink, lineHeight: 1.45, whiteSpace: "pre-wrap" } }, (role === "self" ? pItem.obsMgr : pItem.obsSelf).trim() || React.createElement("span", { style: { color: C.inkSoft } }, "\u2014 \u043F\u043E\u043A\u0430 \u043D\u0435 \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u043E \u2014")))),
+                                role === "target" && (React.createElement("div", { style: { fontSize: 11, color: C.inkSoft, marginBottom: 8 } }, "\u041D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u044F \u0437\u0430\u043F\u043E\u043B\u043D\u044F\u044E\u0442\u0441\u044F \u0432\u043E \u0432\u043A\u043B\u0430\u0434\u043A\u0430\u0445 \u00AB\u0421\u0430\u043C\u043E\u043E\u0446\u0435\u043D\u043A\u0430\u00BB \u0438 \u00AB\u0420\u0443\u043A\u043E\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u00BB."))),
                             React.createElement("div", { style: { borderTop: `1px solid ${C.line}`, margin: "10px 0", paddingTop: 10 } },
                                 React.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: pItem.inIdp ? 10 : 0 } },
                                     React.createElement("input", { type: "checkbox", checked: pItem.inIdp, onChange: (e) => setPlan(d.key, "inIdp", e.target.checked), style: { width: 15, height: 15, accentColor: C.target, cursor: "pointer" } }),
                                     React.createElement("span", { className: "mono", style: { fontSize: 11, color: pItem.inIdp ? C.target : C.inkSoft, letterSpacing: 0.5 } }, "\u0412\u0417\u042F\u0422\u042C \u0412 \u0418\u041F\u0420"),
-                                    pItem.inIdp && nextLevel && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.inkSoft, marginLeft: "auto" } },
+                                    pItem.inIdp && (React.createElement("span", { className: "mono", style: { fontSize: 11, color: C.inkSoft, marginLeft: "auto" } },
                                         selfV,
                                         " \u2192 ",
-                                        idpTarget,
-                                        tgtV > selfV ? " (цель)" : ""))),
+                                        idpTarget))),
                                 pItem.inIdp && (React.createElement(React.Fragment, null,
-                                    React.createElement("div", { style: { background: C.bg, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 10px", marginBottom: 10 } },
-                                        React.createElement("div", { className: "mono", style: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginBottom: 4 } },
-                                            "\u041F\u0420\u041E\u042F\u0412\u041B\u0415\u041D\u0418\u042F, \u0422\u0420\u0415\u0411\u0423\u042E\u0429\u0418\u0415 \u0420\u0410\u0417\u0412\u0418\u0422\u0418\u042F (\u0423\u0420\u041E\u0412\u0415\u041D\u042C ",
-                                            idpTarget,
-                                            ")"),
-                                        React.createElement("div", { style: { fontSize: 12, color: C.ink, lineHeight: 1.45 } }, nextLevel)),
+                                    React.createElement(IdpField, { label: "\u041F\u0440\u043E\u044F\u0432\u043B\u0435\u043D\u0438\u044F, \u0442\u0440\u0435\u0431\u0443\u044E\u0449\u0438\u0435 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u044F \u2014 \u0441\u043E\u0433\u043B\u0430\u0441\u043E\u0432\u0430\u043D\u043D\u0430\u044F \u0444\u043E\u0440\u043C\u0443\u043B\u0438\u0440\u043E\u0432\u043A\u0430", hint: "\u0418\u0442\u043E\u0433 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440\u0430: \u043A\u0430\u043A \u0432\u044B \u0432\u0434\u0432\u043E\u0451\u043C \u0434\u043E\u0433\u043E\u0432\u043E\u0440\u0438\u043B\u0438\u0441\u044C \u0441\u0444\u043E\u0440\u043C\u0443\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C. \u042D\u0442\u043E \u043F\u043E\u043B\u0435 \u0443\u0445\u043E\u0434\u0438\u0442 \u0432 \u0418\u041F\u0420.", color: C.target, value: pItem.obsFinal, onChange: (v) => setPlan(d.key, "obsFinal", v) }),
+                                    React.createElement("div", { style: { height: 1, background: C.line, margin: "10px 0" } }),
                                     React.createElement(IdpField, { label: "70% \u2014 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0435\u043C \u043C\u0435\u0441\u0442\u0435", hint: "\u0412\u043B\u0438\u044F\u043D\u0438\u0435 \u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0435 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B: \u043A\u0430\u043A\u0443\u044E \u0437\u0430\u0434\u0430\u0447\u0443/\u0440\u0438\u0442\u0443\u0430\u043B \u0432\u043E\u0437\u044C\u043C\u0443, \u0447\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u044E \u0432 \u0441\u0432\u043E\u0435\u0439 \u043F\u0440\u0430\u043A\u0442\u0438\u043A\u0435", color: C.accent, value: pItem.a70, onChange: (v) => setPlan(d.key, "a70", v) }),
                                     React.createElement(IdpField, { label: "20% \u2014 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 \u043E\u043A\u0440\u0443\u0436\u0435\u043D\u0438\u0435", hint: "\u041C\u0435\u043D\u0442\u043E\u0440\u0438\u043D\u0433, \u043A\u043E\u0443\u0447\u0438\u043D\u0433, \u043E\u0431\u0440\u0430\u0442\u043D\u0430\u044F \u0441\u0432\u044F\u0437\u044C, \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435 \u0437\u0430 \u0441\u0438\u043B\u044C\u043D\u044B\u043C\u0438 \u043A\u043E\u043B\u043B\u0435\u0433\u0430\u043C\u0438, \u0441\u0443\u043F\u0435\u0440\u0432\u0438\u0437\u0438\u044F", color: C.manager, value: pItem.a20, onChange: (v) => setPlan(d.key, "a20", v) }),
                                     React.createElement(IdpField, { label: "10% \u2014 \u0442\u0435\u043E\u0440\u0435\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0435 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435", hint: "\u041B\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430, \u043A\u0443\u0440\u0441\u044B, \u0442\u0440\u0435\u043D\u0438\u043D\u0433\u0438, \u043A\u043E\u043D\u0444\u0435\u0440\u0435\u043D\u0446\u0438\u0438", color: C.target, value: pItem.a10, onChange: (v) => setPlan(d.key, "a10", v) }),
